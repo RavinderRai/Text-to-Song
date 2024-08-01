@@ -19,7 +19,7 @@
             background: linear-gradient(145deg, #232323, #1A1A1A);
             border: none;
             border-radius: 25px;
-            box-shadow: 0 0 20px #D63384;
+            box-shadow: 0 0 20px #347bff;
         }
         .card-header {
             background-color: transparent;
@@ -29,13 +29,13 @@
             padding: 2rem;
         }
         .btn-primary {
-            background-color: #D63384;
+            background-color: #347bff;
             border: none;
             border-radius: 50px;
             
         }
         .btn-primary:hover {
-            background-color: #C82373;
+            background-color: #347bff;
         }
         .form-control {
             background-color: transparent;
@@ -72,7 +72,7 @@
             width: 100%;
             height: 15px;
             border-radius: 5px;
-            background: #D63384;
+            background: #347bff;
             outline: none;
             opacity: 0.7;
             -webkit-transition: .2s;
@@ -89,7 +89,7 @@
             border-radius: 50%;
             background: #FFFFFF;
             cursor: pointer;
-            box-shadow: 0 0 10px #D63384;
+            box-shadow: 0 0 10px #347bff;
         }
         .slider::-moz-range-thumb {
             width: 25px;
@@ -97,10 +97,10 @@
             border-radius: 50%;
             background: #FFFFFF;
             cursor: pointer;
-            box-shadow: 0 0 10px #D63384;
+            box-shadow: 0 0 10px #347bff;
         }
         .download-icon {
-            color: #D63384;
+            color: #347bff;
             font-size: 24px;
             margin-left: 10px;
             cursor: pointer;
@@ -113,27 +113,42 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4 "><b>Welcome to Harmonix</b></h1>
-        <p class="text-center mb-5">Create songs from text within seconds by describing the music you wish to generate.</p>
+        <h1 class="text-center mb-4 "><b>Text to Music Generator</b></h1>
+        <p class="text-center mb-5">Generate music based off of just lyrics. First describe the style of music you want to hear and we'll generate lyrics to get you started, or write your own from scratch. Either way, when you're ready just hit Generate Music!</p>
         <div class="card mx-auto mb-5">
             <div class="card-header">
             </div>
             <div class="card-body">
-                <h4 class="card-title mb-4">Put your Text Prompt</h4>
+                <h4 class="card-title mb-4">Describe the style of music you'd like to hear!</h4>
                 <div class="mb-3">
-                    <textarea class="form-control" id="description" rows="3" placeholder="For example: Ed0-25 major g melodies that sound triumphant and cinematic. Leading up to a crescendo that resolves in a 9th harmonic."></textarea>
+                    <textarea class="form-control" id="description" rows="3" placeholder="For example: Melodic metal music with a crescendo."></textarea>
                 </div>
+
                 <div class="mb-5">
-                    <label for="durationSlider" class="form-label">Duration (0-20 seconds)</label>
-                    <input type="range" class="slider" id="durationSlider" min="0" max="20" value="10">
+                    <label for="temperatureSlider" class="form-label">Temperature for Lyrics (0-1)</label>
+                    <input type="range" class="slider" id="temperatureSlider" min="0" max="10" value="5">
                 </div>
+
+                <div class="d-grid gap-2 mb-5">
+                    <button class="btn btn-primary" id="generateLyricsButton" type="button">
+                        <b>Generate Lyrics</b> <i class="fas fa-rocket"></i>
+                    </button>
+                </div>
+
+                <h4 class="card-title mb-4">Generated Lyrics</h4>
+                <div class="mb-3">
+                    <textarea class="form-control" id="generated-lyrics" rows="3" placeholder="generated lyrics will appear here for you to edit, or just enter your own now."></textarea>
+                </div>
+
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary" id="generateButton" type="button">
-                        <b>Generate</b> <i class="fas fa-rocket"></i>
+                    <button class="btn btn-primary" id="generateMusicButton" type="button">
+                        <b>Generate Music</b> <i class="fas fa-rocket"></i>
                     </button>
                 </div>
             </div>
         </div>
+
+        
         <div id="loader" class="text-center">
             <div class="spinner-grow text-warning" style="width: 8rem; height: 8rem;" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -167,12 +182,56 @@
             progressColor: 'purple',
             cursorColor: 'navy'
         });
-        document.getElementById('generateButton').addEventListener('click', async function() {
-            const prompt = document.getElementById('description').value.trim(); 
-            const duration = document.getElementById('durationSlider').value;
-            const loader = document.getElementById('loader');
 
+        document.getElementById('generateLyricsButton').addEventListener('click', async function() {
+            const prompt = document.getElementById('description').value.trim();
+            const temperature = document.getElementById('temperatureSlider').value;
+            const generated_lyrics = document.getElementById('generated-lyrics');
+            
             if (!prompt) {
+                Swal.fire({
+                    text: "Please enter a description for the music generation.",
+                    icon: "error"
+                });
+            return; // Stop the function from proceeding further
+            }
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('temperature', temperature);
+
+            try {
+                loader.style.display = "block";
+                const response = await fetch('/generate-lyrics', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    generated_lyrics.value = data.lyrics;
+                } else {
+                    throw new Error('Failed to generate lyrics');
+                }
+
+                } catch (error) {
+                    console.error('Failed to fetch:', error);
+                    Swal.fire({
+                        text: "An error occurred while generating lyrics.",
+                        icon: "error"
+                    });
+                } finally {
+                    loader.style.display = "none";
+                }
+            
+        });
+
+        document.getElementById('generateMusicButton').addEventListener('click', async function() {
+            const generated_lyrics = document.getElementById('generated-lyrics').value.trim();
+            const loader = document.getElementById('loader');
+    
+
+            if (!generated_lyrics) {
                 Swal.fire({
                     text: "Please enter a description for the music generation.",
                     icon: "error"
@@ -181,8 +240,7 @@
         }
 
             const formData = new FormData();
-            formData.append('prompt', prompt);
-            formData.append('duration', duration);
+            formData.append('generated_lyrics', generated_lyrics);
 
             try {
                 loader.style.display = "block";
